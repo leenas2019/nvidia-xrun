@@ -1,0 +1,21 @@
+#!/sbin/openrc-run
+
+command="/usr/bin/nvidia-xrun"
+
+description="Nvidia-xrun-pm enable PM"
+
+start() {
+	ebegin "Starting nvidia-xrun-pm"
+	TURN_OFF_GPU_ONLY="1" ${command}
+	eend $?
+}
+
+restart() {
+	ebegin "Restart Nvidia-xrun-pm"
+}
+
+stop() {
+	ebegin "Stop..."
+	TURN_ON_GPU_ONLY="0" ${command}
+	eend $?
+}

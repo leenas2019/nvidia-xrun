@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
 DRY_RUN=0
+
+colr="\e[32;1m"
+end_colr="\e[0m"
+s="\e[s"
+f="\e[u"
+tw=$(expr `stty size|awk '{print $2}'` - 9)
+end_print="\e[${tw}C "
+
 function printHelp {
   echo "Utility to run games and applications in separate X on discrete Nvidia graphic card"
   echo "Usage: "
@@ -20,33 +28,42 @@ function execute {
 
 function turn_off_gpu {
   if [[ "$REMOVE_DEVICE" == '1' ]]; then
-    echo 'Removing Nvidia bus from the kernel'
-    execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/remove <<<1"
+    echo -ne "$s Removing Nvidia bus from the kernel"
+    execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/remove <<<1" > /dev/null
+    echo -e "$f$end_print$colr[  ok  ]$end_colr"
   else
-    echo 'Enabling powersave for the graphic card'
-    execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<auto"
+    echo -ne "$s Enabling powersave for the graphic card"
+    execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<auto" > /dev/null
+    echo -e "$f$end_print$colr[ auto ]$end_colr"
   fi
 
-  echo 'Enabling powersave for the PCIe controller'
-  execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<auto"
+  echo -ne "$s Enabling powersave for the PCIe controller"
+  execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<auto"> /dev/null
+	echo -e "$f$end_print$colr[ auto ]$end_colr"
 }
 
 function turn_on_gpu {
-  echo 'Turning the PCIe controller on to allow card rescan'
-  execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<on"
+  echo -ne "$s Turning the PCIe controller on to allow card rescan"
+  execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<on"> /dev/null
+  	echo -e "$f$end_print$colr[  on  ]$end_colr"
 
-  echo 'Waiting 1 second'
+  echo -ne "$s Waiting 1 second"
   execute "sleep 1"
+  echo -e "$f$end_print$colr[  ok  ]$end_colr"
 
   if [[ ! -d /sys/bus/pci/devices/${DEVICE_BUS_ID} ]]; then
-    echo 'Rescanning PCI devices'
-    execute "sudo tee /sys/bus/pci/rescan <<<1"
-    echo "Waiting ${BUS_RESCAN_WAIT_SEC} second for rescan"
-    execute "sleep ${BUS_RESCAN_WAIT_SEC}"
+    echo -ne "$s Rescanning PCI devices"
+    execute "sudo tee /sys/bus/pci/rescan <<<1" > /dev/null
+    echo -e "$f$end_print$colr[  ok  ]$end_colr"
+
+    echo -ne "$s Waiting ${BUS_RESCAN_WAIT_SEC} second for rescan"
+    execute "sleep ${BUS_RESCAN_WAIT_SEC}" > /dev/null
+    echo -e "$f$end_print$colr[  ok  ]$end_colr"
   fi
 
-  echo 'Turning the card on'
-  execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<on"
+  echo -ne "$s Turning the card on"
+  execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<on" > /dev/null
+  echo -e "$f$end_print$colr[  on  ]$end_colr"
 }
 
 function load_modules {
@@ -74,9 +91,14 @@ fi
 # load config file
 . /etc/default/nvidia-xrun
 
-# this is used by the systemd service to turn off the gpu at boot
+# this is used by the openrc service to turn off the gpu at boot
 if [[ "$TURN_OFF_GPU_ONLY" == '1' ]]; then
   turn_off_gpu && exit 0
+fi
+
+# this is used by the openrc to turn off nvidia_xrun
+if [[ "$TURN_ON_GPU_ONLY" == '0' ]]; then
+  turn_on_gpu && load_modules && exit 0
 fi
 
 if [[ $EUID -eq 0 ]]; then

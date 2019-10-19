@@ -7,6 +7,9 @@ sysresources=/etc/X11/xinit/.Xresources
 sysmodmap=/etc/X11/xinit/.Xmodmap
 userxinitrc=$CONFIG_DIR/nvidia-xinitrc
 
+echo "test ........................."
+echo $CONFIG_DIR
+
 # merge in defaults and keymaps
 if [[ -f ${sysresources} ]]; then
     xrdb -merge ${sysresources}
